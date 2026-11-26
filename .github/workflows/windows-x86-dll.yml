@@ -1,0 +1,83 @@
+name: Windows 32-bit libdwarf DLL  
+  
+on:  
+  workflow_dispatch:  
+  push:  
+    paths:  
+      - ".github/workflows/windows-x86-dll.yml"  
+      - "CMakeLists.txt"  
+      - "cmake/**"  
+      - "src/lib/libdwarf/**"  
+  
+permissions:  
+  contents: read  
+  
+jobs:  
+  build:  
+    runs-on: ubuntu-latest  
+  
+    steps:  
+      - name: Check out source  
+        uses: actions/checkout@v4  
+  
+      - name: Install 32-bit Windows cross-compiler  
+        run: |  
+          sudo apt-get update  
+          sudo apt-get install -y cmake ninja-build \  
+            gcc-mingw-w64-i686 g++-mingw-w64-i686 \  
+            binutils-mingw-w64-i686  
+  
+      - name: Configure 32-bit Windows build  
+        run: |  
+          cmake -S . -B build32 -G Ninja \  
+            -DCMAKE_SYSTEM_NAME=Windows \  
+            -DCMAKE_SYSTEM_PROCESSOR=i686 \  
+            -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \  
+            -DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++ \  
+            -DCMAKE_RC_COMPILER=i686-w64-mingw32-windres \  
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \  
+            -DCMAKE_BUILD_TYPE=Release \  
+            -DBUILD_SHARED=ON \  
+            -DBUILD_NON_SHARED=OFF \  
+            -DBUILD_DWARFDUMP=OFF \  
+            -DBUILD_DWARFEXAMPLE=OFF \  
+            -DBUILD_DWARFGEN=OFF \  
+            -DDO_TESTING=OFF \  
+            -DENABLE_DECOMPRESSION=OFF  
+  
+      - name: Build shared library  
+        run: cmake --build build32 --target dwarf --parallel  
+  
+      - name: Prepare artifact  
+        shell: bash  
+        run: |  
+          set -euo pipefail  
+  
+          mkdir -p artifact/bin artifact/lib artifact/include  
+  
+          dll="$(find build32 -type f -iname 'libdwarf*.dll' -print -quit)"  
+          if [ -z "$dll" ]; then  
+            echo "Could not find libdwarf DLL in the build output"  
+            find build32 -type f -iname '*.dll' -print  
+            exit 1  
+          fi  
+  
+          i686-w64-mingw32-objdump -f "$dll" | grep -q 'pei-i386'  
+          cp "$dll" artifact/bin/  
+  
+          implib="$(find build32 -type f -iname 'libdwarf*.dll.a' -print -quit)"  
+          if [ -z "$implib" ]; then  
+            echo "Could not find libdwarf import library"  
+            exit 1  
+          fi  
+          cp "$implib" artifact/lib/  
+  
+          cp src/lib/libdwarf/libdwarf.h artifact/include/  
+          cp src/lib/libdwarf/dwarf.h artifact/include/  
+  
+      - name: Upload DLL and development files  
+        uses: actions/upload-artifact@v4  
+        with:  
+          name: libdwarf-windows-x86  
+          path: artifact/  
+          if-no-files-found: error
