@@ -23,27 +23,20 @@ jobs:
       - name: Install 32-bit Windows cross-compiler  
         run: |  
           sudo apt-get update  
-          sudo apt-get install -y cmake ninja-build \
-            gcc-mingw-w64-i686 g++-mingw-w64-i686 \
-            binutils-mingw-w64-i686
+          sudo apt-get install -y cmake ninja-build gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686  
   
       - name: Configure 32-bit Windows build  
         run: |  
-          cmake -S . -B build32 -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Windows \
-            -DCMAKE_SYSTEM_PROCESSOR=i686 \
-            -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \
-            -DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++ \
-            -DCMAKE_RC_COMPILER=i686-w64-mingw32-windres \
-            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED=ON \
-            -DBUILD_NON_SHARED=OFF \
-            -DBUILD_DWARFDUMP=OFF \
-            -DBUILD_DWARFEXAMPLE=OFF \
-            -DBUILD_DWARFGEN=OFF \
-            -DDO_TESTING=OFF \
-            -DENABLE_DECOMPRESSION=OFF
+          cmake -S . -B build32 -G Ninja -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=i686 -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc -DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++ -DCMAKE_RC_COMPILER=i686-w64-mingw32-windres -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED=ON -DBUILD_NON_SHARED=OFF -DBUILD_DWARFDUMP=OFF -DBUILD_DWARFEXAMPLE=OFF -DBUILD_DWARFGEN=OFF -DDO_TESTING=OFF -DENABLE_DECOMPRESSION=OFF  
+  
+      - name: Debug - list CMake/Ninja targets and add_library lines  
+        run: |  
+          echo "---- add_library lines in src/lib/libdwarf/CMakeLists.txt ----"  
+          grep -n "add_library" src/lib/libdwarf/CMakeLists.txt || true  
+          echo "---- ninja targets matching 'dwarf' ----"  
+          ninja -C build32 -t targets all | grep -i dwarf || true  
+          echo "---- full ninja target list ----"  
+          ninja -C build32 -t targets all  
   
       - name: Build shared library  
         run: cmake --build build32 --target dwarf --parallel  
