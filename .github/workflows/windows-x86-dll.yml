@@ -39,7 +39,7 @@ jobs:
           ninja -C build32 -t targets all  
   
       - name: Build shared library  
-        run: cmake --build build32 --target dwarf --parallel  
+        run: cmake --build build32 --target dwarf-shared --parallel
   
       - name: Prepare artifact  
         shell: bash  
